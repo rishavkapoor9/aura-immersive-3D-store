@@ -9,15 +9,18 @@ import { useUiStore } from '@/store/useUiStore';
 import { useRazorpay } from '@/hooks/useRazorpay';
 import { useToastAutoDismiss } from '@/hooks/useToast';
 import { formatRupees } from '@/utils/format';
+import type { ZoneName } from '@/types';
 
 import { EntryScreen } from '@/components/overlays/EntryScreen';
 import { PauseOverlay } from '@/components/overlays/PauseOverlay';
 import { ProductModal } from '@/components/overlays/ProductModal';
 import { CartPanel } from '@/components/overlays/CartPanel';
+import { DirectoryOverlay } from '@/components/overlays/DirectoryOverlay';
 import { BrandMark } from '@/components/hud/BrandMark';
 import { Crosshair } from '@/components/hud/Crosshair';
 import { ControlsCard } from '@/components/hud/ControlsCard';
 import { CartButton } from '@/components/hud/CartButton';
+import { SearchButton } from '@/components/hud/SearchButton';
 import { HoverLabel } from '@/components/hud/HoverLabel';
 import { ZoneLabel } from '@/components/hud/ZoneLabel';
 import { Minimap } from '@/components/hud/Minimap';
@@ -42,6 +45,21 @@ export function StoreExperience() {
 
   useToastAutoDismiss();
 
+  // `persist` reads localStorage synchronously, so a restored cart is already in the
+  // store by first render — but the toast sits under the entry screen and would
+  // auto-dismiss unseen, so hold it until the player is actually on the floor.
+  const restoreAnnounced = useRef(false);
+  useEffect(() => {
+    if (restoreAnnounced.current || ui.phase !== 'playing') return;
+    restoreAnnounced.current = true;
+    const restored = selectItemCount(useCartStore.getState());
+    if (restored > 0) {
+      useUiStore
+        .getState()
+        .showToast(`Cart restored · ${restored} item${restored === 1 ? '' : 's'}`);
+    }
+  }, [ui.phase]);
+
   const activeProduct = useMemo(
     () => (ui.activeProductId !== null ? getProductById(ui.activeProductId) ?? null : null),
     [ui.activeProductId],
@@ -52,11 +70,17 @@ export function StoreExperience() {
   );
 
   // Refs mirror state that engine callbacks read, avoiding stale closures.
-  const stateRef = useRef({ cartOpen: false, suppressed: false, modalOpen: false });
+  const stateRef = useRef({
+    cartOpen: false,
+    suppressed: false,
+    modalOpen: false,
+    searchOpen: false,
+  });
   stateRef.current = {
     cartOpen: ui.cartOpen,
     suppressed: ui.autoOpenSuppressed,
     modalOpen: ui.activeProductId !== null,
+    searchOpen: ui.searchOpen,
   };
 
   // Whether we currently *want* the pointer captured, and any pending re-try.
@@ -127,6 +151,8 @@ export function StoreExperience() {
         onEnterCheckoutZone: () => {
           const store = useUiStore.getState();
           if (stateRef.current.suppressed || stateRef.current.modalOpen) return;
+          // Don't yank the cart open over someone mid-search.
+          if (stateRef.current.searchOpen) return;
           store.setCartOpen(true);
           unlockPointer();
         },
@@ -138,6 +164,15 @@ export function StoreExperience() {
         onArriveAtCheckout: () => {
           useUiStore.getState().setCartOpen(true);
           unlockPointer();
+        },
+        onArriveAtProduct: (productId) => {
+          // The cursor is already free from opening the directory, so the modal is
+          // immediately usable; closing it re-locks and leaves the player here.
+          useUiStore.getState().setActiveProduct(productId);
+        },
+        onArriveAtZone: () => {
+          useUiStore.getState().setPhase('playing');
+          lockPointer();
         },
         onReturnComplete: () => {
           useUiStore.getState().setPhase('playing');
@@ -168,7 +203,7 @@ export function StoreExperience() {
       }
       // Released: only show Pause if no overlay asked for the cursor.
       if (store.phase === 'loading' || store.phase === 'ready') return;
-      const overlayOpen = store.cartOpen || store.activeProductId !== null;
+      const overlayOpen = store.cartOpen || store.searchOpen || store.activeProductId !== null;
       if (!overlayOpen && !engineRef.current?.isTravelling) store.setPhase('paused');
     };
 
@@ -200,6 +235,24 @@ export function StoreExperience() {
 
     const onKeyDown = (event: KeyboardEvent) => {
       const store = useUiStore.getState();
+
+      // The directory owns the keyboard while it's open: it handles its own keys and
+      // stops their propagation, so anything arriving here is from outside the panel.
+      // Swallow it all — otherwise typing "c" opens the cart and "w" walks away.
+      if (store.searchOpen) {
+        if (event.code === 'Escape') {
+          event.preventDefault();
+          closeSearch();
+        }
+        return;
+      }
+
+      const isSlash = event.code === 'Slash' || event.key === '/';
+      if (isSlash && store.phase === 'playing' && store.activeProductId === null) {
+        event.preventDefault();
+        openSearch();
+        return;
+      }
 
       if (event.code === 'KeyC' && store.activeProductId === null) {
         event.preventDefault();
@@ -288,6 +341,60 @@ export function StoreExperience() {
     lockPointer();
   }, [lockPointer]);
 
+  const openSearch = useCallback(() => {
+    const store = useUiStore.getState();
+    if (store.cartOpen || store.activeProductId !== null) return;
+    store.setSearchOpen(true);
+    unlockPointer();
+  }, [unlockPointer]);
+
+  const closeSearch = useCallback(() => {
+    useUiStore.getState().setSearchOpen(false);
+    lockPointer();
+  }, [lockPointer]);
+
+  /**
+   * Both directory destinations drop any pending checkout snapshot: the player has
+   * chosen a new place to be, so a later "return to where you were" would teleport
+   * them somewhere they've long since left.
+   */
+  const travelTo = useCallback(
+    (start: (engine: StoreEngine) => boolean, announce: string) => {
+      const engine = engineRef.current;
+      const store = useUiStore.getState();
+      if (!engine || engine.isTravelling) return;
+
+      store.setSearchOpen(false);
+      engine.clearSnapshot();
+      store.setAutoOpenSuppressed(false);
+      if (!start(engine)) {
+        // Nothing to fly to — hand the controls back rather than stranding the player.
+        lockPointer();
+        return;
+      }
+      store.showToast(announce);
+    },
+    [lockPointer],
+  );
+
+  const handleSelectProduct = useCallback(
+    (productId: number) => {
+      const product = getProductById(productId);
+      travelTo(
+        (engine) => engine.travelToProduct(productId),
+        product ? `Taking you to ${product.name}…` : 'Taking you there…',
+      );
+    },
+    [travelTo],
+  );
+
+  const handleSelectZone = useCallback(
+    (zone: ZoneName) => {
+      travelTo((engine) => engine.travelToZone(zone), `Heading to ${zone}…`);
+    },
+    [travelTo],
+  );
+
   const handleAddToCart = useCallback(
     (productId: number) => {
       const product = getProductById(productId);
@@ -329,7 +436,7 @@ export function StoreExperience() {
 
   const handleCanvasClick = useCallback(() => {
     const store = useUiStore.getState();
-    if (store.cartOpen || store.activeProductId !== null) return;
+    if (store.cartOpen || store.searchOpen || store.activeProductId !== null) return;
     if (store.phase === 'playing' && document.pointerLockElement) {
       engineRef.current?.activateHovered();
     } else {
@@ -364,7 +471,11 @@ export function StoreExperience() {
             hover={ui.activeProductId === null && !ui.cartOpen ? ui.hover : null}
             product={hoveredProduct}
           />
-          <CartButton itemCount={itemCount} onClick={toggleCart} />
+          {/* Search sits beside the cart so both entry points read as one control bar. */}
+          <div className="fixed bottom-6 right-6 z-[95] flex items-center gap-3">
+            <SearchButton onClick={openSearch} />
+            <CartButton itemCount={itemCount} onClick={toggleCart} />
+          </div>
         </>
       )}
 
@@ -379,6 +490,14 @@ export function StoreExperience() {
         onDecrement={cartActions.decrement}
         onRemove={cartActions.remove}
         onCheckout={handleCheckout}
+      />
+
+      <DirectoryOverlay
+        open={ui.searchOpen}
+        models={models}
+        onClose={closeSearch}
+        onSelectProduct={handleSelectProduct}
+        onSelectZone={handleSelectZone}
       />
 
       <ProductModal

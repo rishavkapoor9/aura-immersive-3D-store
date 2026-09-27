@@ -32,6 +32,22 @@ export const CHECKOUT_ANCHOR = {
 export const CAMERA_TRAVEL = {
   toCheckoutSeconds: 2.0,
   returnSeconds: 1.8,
+  /** Directory-driven flights to a product or a department. */
+  travelSeconds: 1.6,
+} as const;
+
+/** How the camera frames a product it has been asked to navigate to. */
+export const PRODUCT_VIEW = {
+  /** Stand-off distance derived from the product's largest dimension. */
+  distanceScale: 1.1,
+  distancePadding: 1.6,
+  minDistance: 2.2,
+  maxDistance: 4.5,
+  /** Fraction of the product's height the camera aims at. */
+  lookAtHeightRatio: 0.55,
+  /** Step size and budget when backing a blocked stand-off point out of a fixture. */
+  clearanceStep: 0.3,
+  clearanceAttempts: 8,
 } as const;
 
 export const QUALITY_PRESETS: Record<QualityLevel, QualityPreset> = {

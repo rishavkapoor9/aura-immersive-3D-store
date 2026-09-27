@@ -41,13 +41,15 @@
   }
 }
 
-/* Slim scrollbar for the cart list and the product detail column */
+/* Slim scrollbar for the cart list, product detail column and directory results */
 #cart-scroll::-webkit-scrollbar,
-#product-scroll::-webkit-scrollbar {
+#product-scroll::-webkit-scrollbar,
+#directory-list::-webkit-scrollbar {
   width: 4px;
 }
 #cart-scroll::-webkit-scrollbar-thumb,
-#product-scroll::-webkit-scrollbar-thumb {
+#product-scroll::-webkit-scrollbar-thumb,
+#directory-list::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.12);
   border-radius: 2px;
 }

@@ -5,6 +5,7 @@ interface UiState {
   phase: GamePhase;
   progress: LoadProgress;
   cartOpen: boolean;
+  searchOpen: boolean;
   autoOpenSuppressed: boolean;
   activeProductId: number | null;
   hover: HoverTarget | null;
@@ -14,6 +15,7 @@ interface UiState {
   setPhase: (phase: GamePhase) => void;
   setProgress: (progress: LoadProgress) => void;
   setCartOpen: (open: boolean) => void;
+  setSearchOpen: (open: boolean) => void;
   setAutoOpenSuppressed: (suppressed: boolean) => void;
   setActiveProduct: (productId: number | null) => void;
   setHover: (hover: HoverTarget | null) => void;
@@ -26,6 +28,7 @@ export const useUiStore = create<UiState>((set) => ({
   phase: 'loading',
   progress: { loaded: 0, total: 0 },
   cartOpen: false,
+  searchOpen: false,
   autoOpenSuppressed: false,
   activeProductId: null,
   hover: null,
@@ -35,6 +38,7 @@ export const useUiStore = create<UiState>((set) => ({
   setPhase: (phase) => set({ phase }),
   setProgress: (progress) => set({ progress }),
   setCartOpen: (cartOpen) => set({ cartOpen }),
+  setSearchOpen: (searchOpen) => set({ searchOpen }),
   setAutoOpenSuppressed: (autoOpenSuppressed) => set({ autoOpenSuppressed }),
   setActiveProduct: (activeProductId) => set({ activeProductId }),
   setHover: (hover) => set({ hover }),
@@ -44,4 +48,7 @@ export const useUiStore = create<UiState>((set) => ({
 }));
 
 export const selectInputBlocked = (state: UiState): boolean =>
-  state.activeProductId !== null || state.cartOpen || state.phase !== 'playing';
+  state.activeProductId !== null ||
+  state.cartOpen ||
+  state.searchOpen ||
+  state.phase !== 'playing';
