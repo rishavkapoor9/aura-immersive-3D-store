@@ -9,6 +9,13 @@ const WIDTH = 150;
 const HEIGHT = 160;
 const PADDING = 9;
 
+// Pure projection from world XZ to canvas pixels, hoisted so it isn't rebuilt each frame.
+const SCALE_X = (WIDTH - PADDING * 2) / ROOM.width;
+const SCALE_Z = (HEIGHT - PADDING * 2) / ROOM.depth;
+
+const mapX = (value: number) => PADDING + (value + ROOM.width / 2) * SCALE_X;
+const mapZ = (value: number) => PADDING + (value + ROOM.depth / 2) * SCALE_Z;
+
 interface MinimapProps {
   hoveredProductId: number | null;
   onReady: (draw: (camera: THREE.PerspectiveCamera) => void) => void;
@@ -24,11 +31,6 @@ export function Minimap({ hoveredProductId, onReady }: MinimapProps) {
     const ctx = canvas?.getContext('2d');
     if (!canvas || !ctx) return;
 
-    const scaleX = (WIDTH - PADDING * 2) / ROOM.width;
-    const scaleZ = (HEIGHT - PADDING * 2) / ROOM.depth;
-    const mapX = (value: number) => PADDING + (value + ROOM.width / 2) * scaleX;
-    const mapZ = (value: number) => PADDING + (value + ROOM.depth / 2) * scaleZ;
-
     ctx.clearRect(0, 0, WIDTH, HEIGHT);
     ctx.fillStyle = 'rgba(10,12,16,.6)';
     ctx.fillRect(0, 0, WIDTH, HEIGHT);
@@ -37,43 +39,42 @@ export function Minimap({ hoveredProductId, onReady }: MinimapProps) {
       const [cx, cz] = zone.center;
       const [sx, sz] = zone.size;
       ctx.fillStyle = 'rgba(120,160,200,.10)';
-      ctx.fillRect(mapX(cx - sx / 2), mapZ(cz - sz / 2), sx * scaleX, sz * scaleZ);
+      ctx.fillRect(mapX(cx - sx / 2), mapZ(cz - sz / 2), sx * SCALE_X, sz * SCALE_Z);
       ctx.strokeStyle = 'rgba(140,190,240,.18)';
       ctx.lineWidth = 0.8;
-      ctx.strokeRect(mapX(cx - sx / 2), mapZ(cz - sz / 2), sx * scaleX, sz * scaleZ);
+      ctx.strokeRect(mapX(cx - sx / 2), mapZ(cz - sz / 2), sx * SCALE_X, sz * SCALE_Z);
     }
 
     ctx.strokeStyle = 'rgba(255,255,255,.16)';
     ctx.lineWidth = 1;
-    ctx.strokeRect(PADDING, PADDING, ROOM.width * scaleX, ROOM.depth * scaleZ);
+    ctx.strokeRect(PADDING, PADDING, ROOM.width * SCALE_X, ROOM.depth * SCALE_Z);
 
     ctx.strokeStyle = 'rgba(120,200,140,.5)';
     ctx.beginPath();
-    ctx.arc(mapX(0), mapZ(ATRIUM.z), ATRIUM.radius * scaleX, 0, Math.PI * 2);
+    ctx.arc(mapX(0), mapZ(ATRIUM.z), ATRIUM.radius * SCALE_X, 0, Math.PI * 2);
     ctx.stroke();
 
     ctx.fillStyle = 'rgba(120,200,150,.13)';
     ctx.fillRect(
       mapX(CHECKOUT_ZONE.minX),
       mapZ(CHECKOUT_ZONE.minZ),
-      (CHECKOUT_ZONE.maxX - CHECKOUT_ZONE.minX) * scaleX,
-      (CHECKOUT_ZONE.maxZ - CHECKOUT_ZONE.minZ) * scaleZ,
+      (CHECKOUT_ZONE.maxX - CHECKOUT_ZONE.minX) * SCALE_X,
+      (CHECKOUT_ZONE.maxZ - CHECKOUT_ZONE.minZ) * SCALE_Z,
     );
     ctx.strokeStyle = 'rgba(120,200,150,.4)';
     ctx.strokeRect(
       mapX(CHECKOUT_ZONE.minX),
       mapZ(CHECKOUT_ZONE.minZ),
-      (CHECKOUT_ZONE.maxX - CHECKOUT_ZONE.minX) * scaleX,
-      (CHECKOUT_ZONE.maxZ - CHECKOUT_ZONE.minZ) * scaleZ,
+      (CHECKOUT_ZONE.maxX - CHECKOUT_ZONE.minX) * SCALE_X,
+      (CHECKOUT_ZONE.maxZ - CHECKOUT_ZONE.minZ) * SCALE_Z,
     );
 
     const [counterX, counterZ] = CHECKOUT_ANCHOR.counterCenter;
     ctx.fillStyle = 'rgba(120,200,150,.45)';
-    ctx.fillRect(mapX(counterX - 2.5), mapZ(counterZ - 0.6), 5 * scaleX, 1.2 * scaleZ);
+    ctx.fillRect(mapX(counterX - 2.5), mapZ(counterZ - 0.6), 5 * SCALE_X, 1.2 * SCALE_Z);
 
     for (const product of CATALOG) {
-      ctx.fillStyle =
-        product.id === hoveredRef.current ? '#ffffff' : 'rgba(159,216,255,.85)';
+      ctx.fillStyle = product.id === hoveredRef.current ? '#ffffff' : 'rgba(159,216,255,.85)';
       ctx.beginPath();
       ctx.arc(mapX(product.position[0]), mapZ(product.position[2]), 2, 0, Math.PI * 2);
       ctx.fill();

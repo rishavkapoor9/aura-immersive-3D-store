@@ -7,12 +7,14 @@ import {
   DEFAULT_QUALITY,
   PALETTE,
   PLAYER,
+  PRODUCT_VIEW,
   QUALITY_PRESETS,
   RENDERER,
 } from '@/config/store.config';
-import { ZONES } from '@/data/zones';
+import { ZONES, getZoneByName } from '@/data/zones';
 import type { HoverTarget, Obstacle, PlayerSnapshot, QualityLevel, ZoneName } from '@/types';
 import type { ModelLibrary } from '@/engine/loaders/modelLoader';
+import { clampToRoom, collidesAt } from '@/engine/utils/collision';
 import { createEnvironment } from '@/engine/textures/proceduralTextures';
 import { createStoreMaterials } from '@/engine/builders/materials';
 import { buildShell } from '@/engine/builders/buildShell';
@@ -34,6 +36,8 @@ export interface StoreEngineEvents {
   onEnterCheckoutZone: () => void;
   onLeaveCheckoutZone: () => void;
   onArriveAtCheckout: () => void;
+  onArriveAtProduct: (productId: number) => void;
+  onArriveAtZone: (zone: ZoneName) => void;
   onReturnComplete: () => void;
   onMinimapFrame: (camera: THREE.PerspectiveCamera) => void;
 }
@@ -58,6 +62,7 @@ export class StoreEngine {
   private readonly tween: CameraTween;
 
   private products: ProductInstance[] = [];
+  private productsById = new Map<number, ProductInstance>();
   private pickTargets: THREE.Object3D[] = [];
   private lighting!: LightingRig;
 
@@ -75,6 +80,7 @@ export class StoreEngine {
   private snapshot: PlayerSnapshot | null = null;
 
   private readonly screenPosition = new THREE.Vector3();
+  private readonly approach = new THREE.Vector3();
   private readonly centerScreen = new THREE.Vector2(0, 0);
   private readonly idleColor = new THREE.Color(PALETTE.hotspotIdle);
   private readonly activeColor = new THREE.Color(PALETTE.hotspotActive);
@@ -125,6 +131,7 @@ export class StoreEngine {
 
     const productResult = buildProducts(ctx);
     this.products = productResult.instances;
+    this.productsById = new Map(this.products.map((item) => [item.product.id, item]));
     this.pickTargets = productResult.pickTargets;
 
     this.lighting = buildLighting(ctx);
@@ -210,6 +217,78 @@ export class StoreEngine {
         this.events.onArriveAtCheckout();
       },
     });
+  }
+
+  /**
+   * Fly to a viewing position in front of a product. The stand-off point is derived
+   * from the product's real bounds rather than authored per-product: each zone's
+   * sign sits on its aisle-facing edge, which gives a reliable "where a shopper
+   * would stand" direction.
+   */
+  travelToProduct(productId: number): boolean {
+    if (this.tween.isActive) return false;
+    const instance = this.productsById.get(productId);
+    if (!instance) return false;
+
+    const { product, dimensions } = instance;
+    const [px, py, pz] = product.position;
+    const zone = getZoneByName(product.zone);
+
+    // Direction from the product out toward the aisle.
+    this.approach.set(zone ? zone.sign[0] - px : -px, 0, zone ? zone.sign[2] - pz : -pz);
+    if (this.approach.lengthSq() < 1e-6) this.approach.set(0, 0, 1);
+    this.approach.normalize();
+
+    const span = Math.max(dimensions.x, dimensions.y, dimensions.z);
+    let distance = THREE.MathUtils.clamp(
+      span * PRODUCT_VIEW.distanceScale + PRODUCT_VIEW.distancePadding,
+      PRODUCT_VIEW.minDistance,
+      PRODUCT_VIEW.maxDistance,
+    );
+
+    // Back away from the product until the stand-off point is walkable.
+    let standX = px;
+    let standZ = pz;
+    for (let attempt = 0; attempt <= PRODUCT_VIEW.clearanceAttempts; attempt += 1) {
+      standX = clampToRoom(px + this.approach.x * distance, 'x');
+      standZ = clampToRoom(pz + this.approach.z * distance, 'z');
+      if (!collidesAt(standX, standZ, this.obstacles)) break;
+      distance += PRODUCT_VIEW.clearanceStep;
+    }
+
+    this.player.releaseAll();
+    this.tween.start({
+      to: new THREE.Vector3(standX, PLAYER.eyeHeight, standZ),
+      lookAt: new THREE.Vector3(px, py + dimensions.y * PRODUCT_VIEW.lookAtHeightRatio, pz),
+      duration: CAMERA_TRAVEL.travelSeconds,
+      mode: 'toProduct',
+      onComplete: () => {
+        this.look.syncFromCamera();
+        this.events.onArriveAtProduct(productId);
+      },
+    });
+    return true;
+  }
+
+  /** Fly to a department's authored viewing anchor. */
+  travelToZone(zoneName: ZoneName): boolean {
+    if (this.tween.isActive) return false;
+    const zone = getZoneByName(zoneName);
+    if (!zone) return false;
+
+    const [vx, vz] = zone.view.position;
+    this.player.releaseAll();
+    this.tween.start({
+      to: new THREE.Vector3(vx, PLAYER.eyeHeight, vz),
+      lookAt: new THREE.Vector3(...zone.view.lookAt),
+      duration: CAMERA_TRAVEL.travelSeconds,
+      mode: 'toZone',
+      onComplete: () => {
+        this.look.syncFromCamera();
+        this.events.onArriveAtZone(zoneName);
+      },
+    });
+    return true;
   }
 
   travelBackToSnapshot(): void {
@@ -313,7 +392,7 @@ export class StoreEngine {
   }
 
   private emitHoverPosition(productId: number): void {
-    const instance = this.products.find((item) => item.product.id === productId);
+    const instance = this.productsById.get(productId);
     if (!instance) return;
 
     this.screenPosition.copy(instance.hotspot.position).project(this.camera);

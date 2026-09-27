@@ -3,6 +3,7 @@ const ROWS = [
   { keys: ['Mouse'], label: 'Look around' },
   { keys: ['E'], label: 'Interact' },
   { keys: ['C'], label: 'Cart' },
+  { keys: ['/'], label: 'Find a product' },
 ] as const;
 
 export function ControlsCard() {

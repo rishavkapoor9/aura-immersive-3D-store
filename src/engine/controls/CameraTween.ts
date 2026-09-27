@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 
-export type TweenMode = 'toCheckout' | 'returning';
+export type TweenMode = 'toCheckout' | 'returning' | 'toProduct' | 'toZone';
 
 interface TweenState {
   elapsed: number;

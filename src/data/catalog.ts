@@ -9,6 +9,7 @@ export const CATALOG: readonly Product[] = [
     price: 64999,
     description:
       '55-inch 4K OLED panel with a 120Hz refresh rate, Dolby Vision HDR and a built-in streaming suite.',
+    keywords: ['tv', 'television', 'screen', 'display', 'monitor', 'oled', '4k', 'smart tv'],
     specs: [
       { label: 'Panel', value: '55" OLED 4K' },
       { label: 'Refresh', value: '120 Hz' },
@@ -28,6 +29,7 @@ export const CATALOG: readonly Product[] = [
     price: 18499,
     description:
       'Floor-standing two-way tower with a silk dome tweeter and 6.5-inch woven bass driver.',
+    keywords: ['speaker', 'audio', 'sound', 'stereo', 'hifi', 'tower'],
     specs: [
       { label: 'Type', value: 'Floor-standing' },
       { label: 'Power', value: '120 W RMS' },
@@ -47,6 +49,7 @@ export const CATALOG: readonly Product[] = [
     price: 24999,
     description:
       'Closed-back studio monitors with adaptive noise cancelling and 40 hours of playback.',
+    keywords: ['headphones', 'headset', 'earphones', 'cans', 'anc', 'audio'],
     specs: [
       { label: 'Driver', value: '40 mm' },
       { label: 'ANC', value: 'Adaptive' },
@@ -66,6 +69,7 @@ export const CATALOG: readonly Product[] = [
     price: 79999,
     description:
       'Titanium frame, 6.7-inch ProMotion display and a triple-lens computational camera system.',
+    keywords: ['phone', 'mobile', 'smartphone', 'handset', 'cell'],
     specs: [
       { label: 'Display', value: '6.7" ProMotion' },
       { label: 'Storage', value: '512 GB' },
@@ -86,6 +90,7 @@ export const CATALOG: readonly Product[] = [
     price: 54999,
     description:
       'Deep-seated three-seater in stonewashed linen with feather-wrapped foam cushions and oak feet.',
+    keywords: ['sofa', 'couch', 'settee', 'seating', 'lounge', 'three seater'],
     specs: [
       { label: 'Seats', value: '3' },
       { label: 'Fabric', value: 'Stonewashed linen' },
@@ -105,6 +110,7 @@ export const CATALOG: readonly Product[] = [
     price: 38999,
     description:
       'Six-seat refectory table in solid European oak, hand-planed and finished with hardwax oil.',
+    keywords: ['table', 'dining table', 'desk', 'oak'],
     specs: [
       { label: 'Seats', value: '6' },
       { label: 'Length', value: '205 cm' },
@@ -124,6 +130,7 @@ export const CATALOG: readonly Product[] = [
     price: 16499,
     description:
       'Mesh-back task chair with lumbar support, 4D armrests and a synchronised tilt mechanism.',
+    keywords: ['chair', 'office chair', 'desk chair', 'seat', 'ergonomic'],
     specs: [
       { label: 'Back', value: 'Breathable mesh' },
       { label: 'Armrests', value: '4D adjustable' },
@@ -143,6 +150,7 @@ export const CATALOG: readonly Product[] = [
     price: 22999,
     description:
       'Five-tier bookcase in warm oak veneer with adjustable shelves and a glazed lower cabinet.',
+    keywords: ['bookcase', 'bookshelf', 'shelf', 'shelving', 'storage'],
     specs: [
       { label: 'Tiers', value: '5' },
       { label: 'Height', value: '267 cm' },
@@ -162,6 +170,7 @@ export const CATALOG: readonly Product[] = [
     price: 7499,
     description:
       'Round-shade floor lamp on a weighted base with a stepless warm-to-cool touch dimmer.',
+    keywords: ['lamp', 'light', 'lighting', 'floor lamp', 'standing lamp'],
     specs: [
       { label: 'Height', value: '198 cm' },
       { label: 'Bulb', value: 'Dimmable LED' },
@@ -182,6 +191,7 @@ export const CATALOG: readonly Product[] = [
     price: 58999,
     description:
       'Frost-free double-door refrigerator with an inverter compressor and convertible freezer.',
+    keywords: ['fridge', 'refrigerator', 'freezer', 'cooler', 'cold storage'],
     specs: [
       { label: 'Capacity', value: '340 L' },
       { label: 'Type', value: 'Double door' },
@@ -201,6 +211,7 @@ export const CATALOG: readonly Product[] = [
     price: 34999,
     description:
       'Four-burner gas range with a convection oven, cast-iron trivets and flame-failure safety.',
+    keywords: ['stove', 'range', 'cooker', 'hob', 'oven', 'gas'],
     specs: [
       { label: 'Burners', value: '4 + oven' },
       { label: 'Oven', value: 'Convection 68 L' },
@@ -220,6 +231,7 @@ export const CATALOG: readonly Product[] = [
     price: 12999,
     description:
       '28-litre convection microwave with grill, auto-cook menus and a child safety lock.',
+    keywords: ['microwave', 'oven', 'reheat', 'convection'],
     specs: [
       { label: 'Capacity', value: '28 L' },
       { label: 'Type', value: 'Convection' },

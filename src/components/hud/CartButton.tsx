@@ -8,7 +8,7 @@ export function CartButton({ itemCount, onClick }: CartButtonProps) {
     <button
       type="button"
       onClick={onClick}
-      className="panel fixed bottom-6 right-6 z-[95] flex items-center gap-3 rounded-sm px-5 py-3
+      className="panel flex items-center gap-3 rounded-sm px-5 py-3
                  text-slate-200 transition-colors hover:border-aura-300/45 hover:bg-aura-600/25"
     >
       <svg

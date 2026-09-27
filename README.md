@@ -16,6 +16,8 @@ A first-person, browser-based concept store built with **React**, **TypeScript**
 - **Four-quadrant store layout** — Electronics and Furniture flank the entrance, Kitchen & Dining fills the left rear, and a branded checkout lane occupies the right rear.
 - **Glowing product hotspots** — camera-facing sprites that pulse, flare on hover, and drive a shared spotlight plus an emissive lift on the product itself.
 - **Interactive product modal** — each item opens a live WebGL turntable you can drag to orbit and scroll to zoom, running in its own isolated renderer.
+- **Directory search** — press `/` to search products by name, department, synonym or spec ("tv", "oled", "120hz", "couch"). Picking a result flies you to the product and opens its detail modal; picking a department flies you there. Fully keyboard-driven, with your recent picks remembered.
+- **Persistent cart** — cart contents survive a reload. Only product ids and quantities are stored, so prices always come from the live catalog.
 - **Proximity-driven cart** — the cart only exists at the checkout lane. Press `C` anywhere and the camera flies you there; close it and you're returned to the exact spot and heading you left from.
 - **Razorpay Checkout** — test-mode payment flow wired to the live cart total in INR.
 - **Adaptive quality** — measures frame rate and steps the renderer up or down between presets without any user-facing controls.
@@ -29,6 +31,8 @@ A first-person, browser-based concept store built with **React**, **TypeScript**
 | `Shift` | Walk slowly |
 | `Click` / `E` | Inspect the product under the crosshair |
 | `C` | Open the cart (flies you to checkout) |
+| `/` | Open the directory — search or jump to a department |
+| `↑` `↓` `Enter` | Move through and pick a directory result |
 | `Esc` | Close overlay / pause |
 
 ---
@@ -77,7 +81,7 @@ The Three.js code is **deliberately framework-agnostic**. `StoreEngine` owns the
                              onEnterCheckoutZone  │
 ```
 
-State lives in two Zustand stores — `useCartStore` (lines, quantities, totals) and `useUiStore` (phase, overlays, toast) — so no prop drilling and no context re-render cascades.
+State lives in three Zustand stores — `useCartStore` (lines, quantities, totals), `useUiStore` (phase, overlays, toast) and `useRecentStore` (recent directory picks) — so no prop drilling and no context re-render cascades. The cart and recents persist to `localStorage`; both store only ids and quantities and re-resolve them against `CATALOG` on load, so a catalog edit is never frozen into a returning visitor's browser and a hand-edited payload can't crash the app.
 
 ---
 

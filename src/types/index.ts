@@ -19,6 +19,8 @@ export interface Product {
   readonly name: string;
   readonly price: number;
   readonly description: string;
+  /** Search synonyms the marketing name doesn't contain ("tv", "couch", "fridge"). */
+  readonly keywords: readonly string[];
   readonly specs: readonly ProductSpec[];
   readonly fit: ModelFit;
   readonly position: readonly [number, number, number];
@@ -37,6 +39,14 @@ export interface Zone {
   readonly size: readonly [number, number];
   readonly sign: readonly [number, number, number];
   readonly signRotation: number;
+  /**
+   * Where the camera stands when navigating to this department. Authored rather
+   * than derived from `center`, which falls on solid fixtures in every zone.
+   */
+  readonly view: {
+    readonly position: readonly [number, number];
+    readonly lookAt: readonly [number, number, number];
+  };
 }
 
 export type Obstacle =
